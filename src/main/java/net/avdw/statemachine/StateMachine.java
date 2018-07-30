@@ -1,9 +1,7 @@
 package net.avdw.statemachine;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+
 import org.pmw.tinylog.Logger;
 
 public class StateMachine {
@@ -12,6 +10,7 @@ public class StateMachine {
     private final Map<Class, AState> states = new HashMap();
 
     public void addState(AState state, Class... fromStates) {
+        state.machine = this;
         states.put(state.getClass(), state);
         if (fromStates != null) {
             states.get(state.getClass()).from(Arrays.asList(fromStates));
@@ -23,11 +22,11 @@ public class StateMachine {
         current = state;
     }
 
-    public void process() {
-        states.get(current).process();
+    public void process(Object state) {
+        states.get(current).process(state);
     }
 
-    public void transition(Class state) {
+    public void transition(Class state) throws InvalidStateTransitionException {
         if (current == null) {
             Logger.warn(String.format("initial state not set"));
         }
@@ -47,21 +46,40 @@ public class StateMachine {
 
             current = state;
         } else {
-            Logger.warn(String.format("invalid %s -> %s", current.getSimpleName(), state.getSimpleName()));
+            throw new InvalidStateTransitionException(String.format("invalid %s -> %s", current.getSimpleName(), state.getSimpleName()));
         }
     }
 
-    static public interface AState {
+    public static class AState<T> {
 
-        void enter();
+        private Set<Class> from = new HashSet();
+        protected StateMachine machine;
 
-        void exit();
+        void enter() {
+            Logger.debug("enter");
+        }
 
-        void from(List<Class> states);
+        void exit() {
+            Logger.debug("exit");
+        }
 
-        List<Class> from();
+        final void from(List<Class> states) {
+            from.addAll(states);
+        }
 
-        void process();
+        final List<Class> from() {
+            return new ArrayList(from);
+        }
+
+        void process(T state) {
+            Logger.debug("process");
+        }
+    }
+
+    public static class InvalidStateTransitionException extends Exception {
+        InvalidStateTransitionException(String message) {
+            super(message);
+        }
 
     }
 }
