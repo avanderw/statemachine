@@ -57,7 +57,7 @@ public class StateMachine {
 
         void exit();
 
-        void from(List<Class> asList);
+        void from(List<Class> states);
 
         List<Class> from();
 
